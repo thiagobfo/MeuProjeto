@@ -1,9 +1,128 @@
 ﻿@page "/"
 
-<PageTitle>Index</PageTitle>
+<MudTable Items="@Elements.Take(4)" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_loading" LoadingProgressColor="Color.Info">
+    <HeaderContent>
+        <MudTh>Nr</MudTh>
+        <MudTh>Sign</MudTh>
+        <MudTh>Name</MudTh>
+        <MudTh>Position</MudTh>
+        <MudTh>Molar mass</MudTh>
+        @* <MudTh>Name</MudTh>
+        <MudTh>Id</MudTh> *@
+        @if (Elements.Any() && Elements.First().DataList != null)
+        {
+            @foreach (var prop in GetDynamicProperties(Elements.First().DataList.First()))
+            {
+                <MudTh>@prop.Name</MudTh>
+            }
+        }
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Nr">@context.Number</MudTd>
+        <MudTd DataLabel="Sign">@context.Sign</MudTd>
+        <MudTd DataLabel="Name">@context.Name</MudTd>
+        <MudTd DataLabel="Position" HideSmall="_hidePosition">@context.Position</MudTd>
+        <MudTd DataLabel="Molar mass">@context.Molar</MudTd>
+        @if (context.DataList != null)
+        {
+            @foreach (var data in context.DataList)
+            {
+                @foreach (var prop in GetDynamicProperties(data))
+                {
+                    <MudTd DataLabel="@prop.Name">@prop.GetValue(data)</MudTd>
+                }
+            }
+        }
+    </RowTemplate>
+</MudTable>
 
-<h1>Hello, world!</h1>
+<MudDataGrid Items="@Elements.Take(4)">
+    <Columns>
+        <PropertyColumn Property="x => x.Number" Title="Nr" />
+        <PropertyColumn Property="x => x.Sign" />
+        <PropertyColumn Property="x => x.Name" />
+        <PropertyColumn Property="x => x.Position" />
+        <PropertyColumn Property="x => x.Molar" Title="Molar mass" />
+        @if (Elements.Any() && Elements.First().DataList != null)
+        {
+            @foreach (var prop in GetDynamicProperties(Elements.First().DataList.First()))
+            {
+                <PropertyColumn Property="@(x => GetDynamicPropertyValue(x, prop.Name))" Title="@prop.Name" />
+            }
+        }
+    </Columns>
+</MudDataGrid>
+@code {
+    private bool _hidePosition;
+    private bool _loading;
+    private List<Element> Elements = new List<Element>();
 
-Welcome to your new app.
+    public class Element
+    {
+        public string? Number { get; set; }
+        public string? Sign { get; set; }
+        public string? Name { get; set; }
+        public string? Position { get; set; }
+        public string? Molar { get; set; }
+        public List<Data>? DataList {get; set;}
+    }
 
-<SurveyPrompt Title="How is Blazor working for you?" />
+    public class Data
+    {
+        public string? Name { get; set; }
+        public string? Id { get; set; }
+        public string? Price { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var element1 = new Element
+            {
+                Number = "1",
+                Sign = "A",
+                Name = "John Doe",
+                Position = "XY",
+                Molar = "M",
+                DataList = new List<Data> 
+                { 
+                    new Data { Name = "Teste1", Id = "1", Price="100"} 
+                }
+            };
+
+        var element2 = new Element
+            {
+                Number = "2",
+                Sign = "B",
+                Name = "Jane Smith",
+                Position = "YZ",
+                Molar = "L",
+                DataList = new List<Data>
+                {
+                    new Data { Name = "Teste2", Id = "2", Price="200"}
+                }
+            };
+
+        // Adicionando os elementos à lista
+        Elements = new List<Element> { element1, element2 };
+
+    }
+
+    private IEnumerable<System.Reflection.PropertyInfo> GetDynamicProperties(Data data)
+    {
+        return data.GetType().GetProperties().Where(prop => prop.CanRead);
+    }
+
+    private object GetDynamicPropertyValue(Element element, string propertyName)
+    {
+        var dataItem = element.DataList?.FirstOrDefault();
+        if (dataItem != null)
+        {
+            var prop = dataItem.GetType().GetProperty(propertyName);
+            if (prop != null)
+            {
+                return prop.GetValue(dataItem);
+            }
+        }
+        return null;
+    }
+}
